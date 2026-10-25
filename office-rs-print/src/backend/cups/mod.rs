@@ -7,7 +7,7 @@
 pub(crate) mod ffi;
 pub(crate) mod options;
 
-use super::{PrinterCaps, PrinterInfo};
+use super::PrinterInfo;
 use crate::job::{JobState, SharedJob};
 use crate::settings::PrintSettings;
 use std::ffi::{CStr, CString};
@@ -35,13 +35,6 @@ pub(crate) fn list_printers_impl() -> Vec<PrinterInfo> {
         ffi::cupsFreeDests(num, dests);
         printers
     }
-}
-
-pub(crate) fn printer_caps_impl(name: Option<&str>) -> Option<PrinterCaps> {
-    // v1: CUPS capability probing (IPP printer attributes) is not wired;
-    // panels fall back to permissive defaults.
-    let _ = name;
-    None
 }
 
 fn cstr_to_string(ptr: *const std::ffi::c_char) -> String {
