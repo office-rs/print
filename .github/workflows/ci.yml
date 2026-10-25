@@ -1,0 +1,16 @@
+name: ci
+on: [push, pull_request]
+jobs:
+  test:
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [windows-latest, ubuntu-latest]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install libcups headers (Linux)
+        if: runner.os == 'Linux'
+        run: sudo apt-get update && sudo apt-get install -y libcups2-dev
+      - run: cargo test --workspace
+      - run: cargo clippy --workspace --all-targets -- -D warnings
