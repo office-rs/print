@@ -177,9 +177,12 @@ impl GdiSink<'_> {
         }
     }
 
-    /// Install `subpixel_scale ∘ page ∘ transform` as the world transform.
+    /// Install `page ∘ draw ∘ scale(1/SUBPIXEL)` as the world transform:
+    /// emitted logical coordinates are `scene_px * 64` (see the module
+    /// docs), so the inverse subpixel scale folds into the transform —
+    /// `device = page(draw(logical / 64)) == page(draw(scene_px))`.
     fn set_world(&self, transform: Affine) {
-        let full = Affine::scale(SUBPIXEL) * self.page * transform;
+        let full = self.page * transform * Affine::scale(1.0 / SUBPIXEL);
         unsafe {
             SetWorldTransform(self.hdc, &affine_to_xform(&full));
         }
@@ -187,7 +190,7 @@ impl GdiSink<'_> {
 
     /// Re-install the plain page transform (per-draw override reset).
     fn reset_world(&self) {
-        let full = Affine::scale(SUBPIXEL) * self.page;
+        let full = self.page * Affine::scale(1.0 / SUBPIXEL);
         unsafe {
             SetWorldTransform(self.hdc, &affine_to_xform(&full));
         }

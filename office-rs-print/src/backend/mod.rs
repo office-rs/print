@@ -74,10 +74,20 @@ pub fn submit(payload: PrintPayload, settings: &PrintSettings, title: &str) -> J
     submit_with_output(payload, settings, title, None)
 }
 
-/// Test/diagnostic variant routing the job to a file instead of the port
-/// (GDI `DOCINFOW.lpszOutput`; CUPS writes the spool file and skips
-/// submission).
-pub(crate) fn submit_with_output(
+/// Submit routing the job to a file instead of the port: GDI sets
+/// `DOCINFOW.lpszOutput` (e.g. "Microsoft Print to PDF" materializes a
+/// real PDF — the manual-test channel); CUPS writes the spool file and
+/// skips submission. `None` degrades to [`submit`].
+pub fn submit_to_file(
+    payload: PrintPayload,
+    settings: &PrintSettings,
+    title: &str,
+    output_file: Option<std::path::PathBuf>,
+) -> JobHandle {
+    submit_with_output(payload, settings, title, output_file)
+}
+
+fn submit_with_output(
     payload: PrintPayload,
     settings: &PrintSettings,
     title: &str,

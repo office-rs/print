@@ -102,7 +102,7 @@ pub(crate) fn run_gdi_job(
             return Err(format!("OpenPrinterW failed for {printer_name:?}"));
         }
         // Size probe then fetch the driver default DEVMODE.
-        let mut needed = DocumentPropertiesW(
+        let needed = DocumentPropertiesW(
             std::ptr::null_mut(),
             handle,
             wide_name.as_ptr(),
