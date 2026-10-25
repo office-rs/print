@@ -20,6 +20,8 @@ pub fn version() -> &'static str {
 
 pub mod page_plan;
 pub mod dialog;
+#[cfg(not(target_arch = "wasm32"))]
+pub(crate) mod backend;
 pub mod job;
 pub mod payload;
 pub mod settings;

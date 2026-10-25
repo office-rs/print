@@ -14,8 +14,10 @@ serde = { version = "1", features = ["derive"] }
 [target.'cfg(windows)'.dependencies]
 windows-sys = { version = "0.59", features = [
     "Win32_Foundation",
+    "Win32_Security",
     "Win32_Graphics_Gdi",
     "Win32_Graphics_Printing",
+    "Win32_Storage_Xps",
 ] }
 
 [dev-dependencies]
