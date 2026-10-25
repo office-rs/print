@@ -18,6 +18,9 @@ pub fn version() -> &'static str {
     env!("CARGO_PKG_VERSION")
 }
 
+pub mod page_plan;
+pub mod settings;
+
 #[cfg(test)]
 mod tests {
     #[test]
