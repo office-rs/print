@@ -19,6 +19,7 @@ pub fn version() -> &'static str {
 }
 
 pub mod page_plan;
+pub mod payload;
 pub mod settings;
 
 #[cfg(test)]
