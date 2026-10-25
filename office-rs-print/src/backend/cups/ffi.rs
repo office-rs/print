@@ -22,6 +22,7 @@ pub(crate) struct CupsOption {
     pub value: *mut c_char,
 }
 
+#[link(name = "cups")]
 extern "C" {
     pub(crate) fn cupsGetDests(num_dests: *mut i32) -> *mut CupsDest;
     pub(crate) fn cupsFreeDests(num_dests: i32, dests: *mut CupsDest);
