@@ -22,7 +22,9 @@ pub mod settings;
 mod backend;
 
 // Type-layer re-exports.
-pub use dialog::{DialogEvent, DialogPhase, DialogState, DiscoverState, Labels, PrintServices};
+pub use dialog::{
+    advance, DialogEvent, DialogPhase, DialogState, DiscoverState, Labels, PrintServices,
+};
 pub use job::{join_all, JobHandle, JobSnapshot, JobState};
 pub use page_plan::{
     collate_plan, parse_page_spec, resolve_page_list, validate_page_spec, MAX_SPEC_LEN,

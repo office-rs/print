@@ -15,7 +15,8 @@ use std::sync::mpsc;
 /// Discovery progress as emitted by a [`PrintServices::discover`] receiver
 /// (one terminal-ish message per state; the web profile's no-discovery
 /// implementation simply never emits `Printers`).
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
 pub enum DiscoverState {
     Finding,
     Printers(Vec<String>),
@@ -38,7 +39,7 @@ pub enum DialogPhase {
 /// Panel state: phase + the discovery result + the last validation
 /// snapshot. The settings object itself stays host-owned (the host applies
 /// edits and feeds them back through [`DialogEvent::SettingsChanged`]).
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct DialogState {
     pub phase: DialogPhase,
     pub printers: Vec<String>,
@@ -65,7 +66,8 @@ impl DialogState {
 }
 
 /// Service/host events driving the state machine.
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
 pub enum DialogEvent {
     /// The panel opened / discovery was kicked off.
     DiscoveryStarted,
