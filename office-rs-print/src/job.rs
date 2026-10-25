@@ -5,7 +5,7 @@
 //! join them before exit — a process death mid-spool kills the spooler
 //! helper and the job with it (the WordCraft lesson).
 
-use std::sync::atomic::{AtomicBool, AtomicU64, Ordering};
+use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::{Arc, Mutex};
 use std::thread::JoinHandle;
 

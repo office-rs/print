@@ -68,7 +68,7 @@ pub(crate) fn list_printers_impl() -> Vec<PrinterInfo> {
     }
 }
 
-fn default_printer_name() -> Option<String> {
+pub(crate) fn default_printer_name() -> Option<String> {
     unsafe {
         let mut len: u32 = 0;
         GetDefaultPrinterW(std::ptr::null_mut(), &mut len);
