@@ -88,7 +88,7 @@ pub(crate) fn run_gdi_job(
         // ── OpenPrinterW + driver default DEVMODE ──────────────────────
         let mut handle: HANDLE = std::ptr::null_mut();
         let wide_name: Vec<u16> = printer_name.encode_utf16().chain(std::iter::once(0)).collect();
-        let mut defaults = PRINTER_DEFAULTSW {
+        let defaults = PRINTER_DEFAULTSW {
             DesiredAccess: 0,
             pDatatype: std::ptr::null_mut(),
             pDevMode: std::ptr::null_mut(),
@@ -96,7 +96,7 @@ pub(crate) fn run_gdi_job(
         if OpenPrinterW(
             wide_name.as_ptr(),
             &mut handle,
-            &mut defaults,
+            &defaults,
         ) == 0
         {
             return Err(format!("OpenPrinterW failed for {printer_name:?}"));

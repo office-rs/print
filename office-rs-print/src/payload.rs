@@ -450,7 +450,7 @@ impl Serializer {
             filters: group
                 .filters
                 .iter()
-                .map(|f| filter_entry(f))
+                .map(filter_entry)
                 .collect::<Result<Vec<_>, String>>()?,
             composite: composite_entry(&group.composite)?,
         })
@@ -836,7 +836,7 @@ impl<'a> Deserializer<'a> {
                 transform: Self::coeffs(transform),
                 fill_rule: fill_rule_from_name(fill_rule)?,
                 brush: self.brush(brush)?,
-                brush_transform: brush_transform.as_ref().map(|c| Self::coeffs(c)),
+                brush_transform: brush_transform.as_ref().map(Self::coeffs),
                 shape: Self::geometry(shape),
                 composite: composite_from_entry(composite),
             },
@@ -851,7 +851,7 @@ impl<'a> Deserializer<'a> {
                 transform: Self::coeffs(transform),
                 stroke: Self::stroke(stroke)?,
                 brush: self.brush(brush)?,
-                brush_transform: brush_transform.as_ref().map(|c| Self::coeffs(c)),
+                brush_transform: brush_transform.as_ref().map(Self::coeffs),
                 shape: Self::geometry(shape),
                 composite: composite_from_entry(composite),
             },
@@ -869,8 +869,8 @@ impl<'a> Deserializer<'a> {
                 },
                 font_size: run.font_size,
                 transform: Self::coeffs(&run.transform),
-                glyph_transform: run.glyph_transform.as_ref().map(|c| Self::coeffs(c)),
-                brush_transform: run.brush_transform.as_ref().map(|c| Self::coeffs(c)),
+                glyph_transform: run.glyph_transform.as_ref().map(Self::coeffs),
+                brush_transform: run.brush_transform.as_ref().map(Self::coeffs),
                 font_embolden: Vec2::new(run.embolden[0], run.embolden[1]),
                 hint: run.hint,
                 normalized_coords: run.normalized_coords.clone(),
@@ -1015,7 +1015,7 @@ fn rebuild_scene(data: &SceneData) -> Result<Scene, String> {
 impl Serialize for SceneWire {
     fn serialize<S: serde::Serializer>(&self, serializer: S) -> Result<S::Ok, S::Error> {
         scene_data(&self.0)
-            .map_err(|e| serde::ser::Error::custom(e))?
+            .map_err(serde::ser::Error::custom)?
             .serialize(serializer)
     }
 }
@@ -1023,7 +1023,7 @@ impl Serialize for SceneWire {
 impl<'de> Deserialize<'de> for SceneWire {
     fn deserialize<D: serde::Deserializer<'de>>(deserializer: D) -> Result<Self, D::Error> {
         let data = SceneData::deserialize(deserializer)?;
-        let scene = rebuild_scene(&data).map_err(|e| serde::de::Error::custom(e))?;
+        let scene = rebuild_scene(&data).map_err(serde::de::Error::custom)?;
         Ok(SceneWire(scene))
     }
 }

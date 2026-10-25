@@ -100,17 +100,14 @@ pub enum ColorMode {
 /// Sheet orientation. `Auto` resolves per the first page's aspect once the
 /// payload is known (never reaches a backend unresolved).
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Default)]
 pub enum Orientation {
+    #[default]
     Portrait,
     Landscape,
     Auto,
 }
 
-impl Default for Orientation {
-    fn default() -> Self {
-        Orientation::Portrait
-    }
-}
 
 /// Page parity selection.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Default, Serialize, Deserialize)]
@@ -125,17 +122,14 @@ pub enum Parity {
 /// (parsed by [`crate::page_plan::parse_page_spec`]).
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[serde(tag = "kind")]
+#[derive(Default)]
 pub enum PageRange {
+    #[default]
     All,
     Current,
     Custom { spec: String },
 }
 
-impl Default for PageRange {
-    fn default() -> Self {
-        PageRange::All
-    }
-}
 
 /// Print job settings (design §6.1 v1 fields). Copy/parity/duplex/color
 /// are JOB parameters only (D10) — they never multiply the payload.

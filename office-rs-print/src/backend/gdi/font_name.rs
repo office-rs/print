@@ -49,7 +49,7 @@ pub(crate) fn family_name(font: &[u8], index: u32) -> Option<String> {
             let start = string_offset + offset;
             let raw = table.get(start..start + length)?;
             let units: Vec<u16> = raw
-                .chunks_exact(2)
+                .as_chunks::<2>().0.iter()
                 .map(|c| u16::from_be_bytes([c[0], c[1]]))
                 .collect();
             let name = String::from_utf16_lossy(&units);

@@ -66,20 +66,20 @@ impl FontRegistry {
         size_px: f32,
     ) -> Result<HGDIOBJ, String> {
         let ptr = font.data.as_ref().as_ptr() as usize;
-        if !self.mem_fonts.contains_key(&ptr) {
-            let mut num_fonts: u32 = 0;
+        if let std::collections::hash_map::Entry::Vacant(e) = self.mem_fonts.entry(ptr) {
+            let num_fonts: u32 = 0;
             let handle = unsafe {
                 AddFontMemResourceEx(
                     font.data.as_ref().as_ptr() as *const core::ffi::c_void,
                     font.data.as_ref().len() as u32,
                     std::ptr::null(),
-                    &mut num_fonts,
+                    &num_fonts,
                 )
             };
             if handle.is_null() {
                 return Err("AddFontMemResourceEx failed".to_string());
             }
-            self.mem_fonts.insert(ptr, handle);
+            e.insert(handle);
         }
         let height = lf_height(size_px);
         let face = *self.faces.entry((ptr, height)).or_insert_with(|| {
@@ -99,7 +99,7 @@ impl FontRegistry {
                     lfItalic: 0,
                     lfUnderline: 0,
                     lfStrikeOut: 0,
-                    lfCharSet: DEFAULT_CHARSET as u8,
+                    lfCharSet: DEFAULT_CHARSET,
                     lfOutPrecision: 0,
                     lfClipPrecision: 0,
                     lfQuality: 0,
@@ -136,8 +136,8 @@ pub(crate) fn replay_page(
     fonts: &mut FontRegistry,
 ) {
     unsafe {
-        SetGraphicsMode(hdc, GM_ADVANCED as i32);
-        SetStretchBltMode(hdc, HALFTONE as i32);
+        SetGraphicsMode(hdc, GM_ADVANCED);
+        SetStretchBltMode(hdc, HALFTONE);
     }
     let mut sink = GdiSink {
         hdc,
@@ -316,7 +316,7 @@ impl GdiSink<'_> {
                 biHeight: -(h as i32), // top-down
                 biPlanes: 1,
                 biBitCount: 32,
-                biCompression: BI_RGB as u32,
+                biCompression: BI_RGB,
                 biSizeImage: 0,
                 biXPelsPerMeter: 0,
                 biYPelsPerMeter: 0,
@@ -334,7 +334,7 @@ impl GdiSink<'_> {
             // Destination is set in DEVICE units (STRETCH destination is
             // transformed by the world transform, so switch to identity
             // first to avoid double transforms).
-            SetGraphicsMode(self.hdc, GM_ADVANCED as i32);
+            SetGraphicsMode(self.hdc, GM_ADVANCED);
             SetWorldTransform(self.hdc, &affine_to_xform(&Affine::IDENTITY));
             StretchDIBits(
                 self.hdc,
@@ -348,8 +348,8 @@ impl GdiSink<'_> {
                 h as i32,
                 bgra.as_ptr() as *const core::ffi::c_void,
                 &info,
-                DIB_RGB_COLORS as u32,
-                SRCCOPY as u32,
+                DIB_RGB_COLORS,
+                SRCCOPY,
             );
             let _ = &mut info;
             self.reset_world();
@@ -549,7 +549,7 @@ impl imaging::PaintSink for GdiSink<'_> {
         };
         unsafe {
             SetTextColor(self.hdc, rgb(c.r, c.g, c.b));
-            SetTextAlign(self.hdc, (TA_LEFT | TA_BASELINE) as u32);
+            SetTextAlign(self.hdc, TA_LEFT | TA_BASELINE);
             SetBkMode(self.hdc, TRANSPARENT as i32);
         }
         let run_transform = draw.transform;
