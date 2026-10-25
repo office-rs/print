@@ -19,6 +19,7 @@ pub fn version() -> &'static str {
 }
 
 pub mod page_plan;
+pub mod dialog;
 pub mod job;
 pub mod payload;
 pub mod settings;
