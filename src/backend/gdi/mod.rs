@@ -26,6 +26,7 @@ use windows_sys::Win32::Storage::Xps::{
 };
 
 pub(crate) mod coords;
+pub(crate) mod pdf;
 pub(crate) mod font_name;
 pub(crate) mod replay;
 
@@ -64,40 +65,37 @@ pub(crate) fn gdi_page_sequence(
         .collect()
 }
 
-unsafe extern "system" fn abort_proc(_hdc: gdi::HDC, _code: i32) -> i32 {
+pub(crate) unsafe extern "system" fn abort_proc(_hdc: gdi::HDC, _code: i32) -> i32 {
     // Returning 0 cancels the job; we drive cancellation through the
     // SharedJob flag instead, so always continue.
     1
 }
 
-/// PDF-payload job (Task 2 wires the WinRT renderer; the stub keeps the
-/// dispatch shape in place).
-pub(crate) fn run_gdi_pdf_job(
-    _pdf: &[u8],
-    _settings: &PrintSettings,
-    _title: &str,
-    _output_file: Option<&Path>,
-    _job: &SharedJob,
-) -> Result<(), String> {
-    Err("gdi pdf sink not implemented yet".to_string())
+/// The printer DC plus everything both sinks (vector replay / PDF raster)
+/// need from it. Built by [`prepare_printer_dc`]; call `DeleteDC` when done.
+pub(crate) struct PreparedPrinter {
+    pub(crate) hdc: gdi::HDC,
+    pub(crate) dpi_x: i32,
+    pub(crate) dpi_y: i32,
+    pub(crate) driver_copies: bool,
+    pub(crate) driver_collate: bool,
+    /// Physical page size in device units (HORZRES/VERTRES are the
+    /// printable area; PHYSICALWIDTH/HEIGHT the full sheet).
+    pub(crate) phys_w: i32,
+    pub(crate) phys_h: i32,
 }
 
-pub(crate) fn run_gdi_job(
-    pages: &[PageScene],
+/// Shared job front half: resolve the printer (settings or default),
+/// fetch + apply the DEVMODE, create the DC, read device caps.
+pub(crate) fn prepare_printer_dc(
     settings: &PrintSettings,
-    title: &str,
-    output_file: Option<&Path>,
-    job: &SharedJob,
-) -> Result<(), String> {
-    // Resolve the target printer (default when None).
+) -> Result<PreparedPrinter, String> {
     let printer_name = match &settings.printer {
         Some(name) => name.clone(),
         None => super::discover_win::default_printer_name()
             .ok_or_else(|| "no default printer".to_string())?,
     };
-    let mut warnings: Vec<String> = Vec::new();
     unsafe {
-        // ── OpenPrinterW + driver default DEVMODE ──────────────────────
         let mut handle: HANDLE = std::ptr::null_mut();
         let wide_name: Vec<u16> = printer_name.encode_utf16().chain(std::iter::once(0)).collect();
         let defaults = PRINTER_DEFAULTSW {
@@ -105,15 +103,9 @@ pub(crate) fn run_gdi_job(
             pDatatype: std::ptr::null_mut(),
             pDevMode: std::ptr::null_mut(),
         };
-        if OpenPrinterW(
-            wide_name.as_ptr(),
-            &mut handle,
-            &defaults,
-        ) == 0
-        {
+        if OpenPrinterW(wide_name.as_ptr(), &mut handle, &defaults) == 0 {
             return Err(format!("OpenPrinterW failed for {printer_name:?}"));
         }
-        // Size probe then fetch the driver default DEVMODE.
         let needed = DocumentPropertiesW(
             std::ptr::null_mut(),
             handle,
@@ -143,10 +135,7 @@ pub(crate) fn run_gdi_job(
         let driver_copies = (*devmode).dmFields & DM_COPIES != 0;
         let driver_collate =
             (*devmode).dmFields & DM_COLLATE != 0 && (*devmode).dmCollate != DMCOLLATE_FALSE;
-        // Apply settings in place.
         apply_settings(&mut *devmode, settings);
-        // Push the modified DEVMODE back through the driver (validation +
-        // dependent fields), then create the DC.
         if DocumentPropertiesW(
             std::ptr::null_mut(),
             handle,
@@ -159,20 +148,42 @@ pub(crate) fn run_gdi_job(
             CloseHandle(handle);
             return Err("DocumentPropertiesW merge failed".into());
         }
-        let hdc = CreateDCW(
-            std::ptr::null(),
-            wide_name.as_ptr(),
-            std::ptr::null(),
-            devmode,
-        );
+        let hdc = CreateDCW(std::ptr::null(), wide_name.as_ptr(), std::ptr::null(), devmode);
         CloseHandle(handle);
         if hdc.is_null() {
             return Err("CreateDCW failed".into());
         }
+        let phys_w = gdi::GetDeviceCaps(hdc, gdi::PHYSICALWIDTH as i32);
+        let phys_h = gdi::GetDeviceCaps(hdc, gdi::PHYSICALHEIGHT as i32);
+        Ok(PreparedPrinter {
+            hdc,
+            dpi_x: gdi::GetDeviceCaps(hdc, gdi::LOGPIXELSX as i32),
+            dpi_y: gdi::GetDeviceCaps(hdc, gdi::LOGPIXELSY as i32),
+            driver_copies,
+            driver_collate,
+            phys_w,
+            phys_h,
+        })
+    }
+}
 
-        // ── Page geometry ──────────────────────────────────────────────
-        let dpi_x = gdi::GetDeviceCaps(hdc, gdi::LOGPIXELSX as i32);
-        let dpi_y = gdi::GetDeviceCaps(hdc, gdi::LOGPIXELSY as i32);
+pub(crate) fn run_gdi_job(
+    pages: &[PageScene],
+    settings: &PrintSettings,
+    title: &str,
+    output_file: Option<&Path>,
+    job: &SharedJob,
+) -> Result<(), String> {
+    let mut warnings: Vec<String> = Vec::new();
+    let prepared = prepare_printer_dc(settings)?;
+    unsafe {
+        let (hdc, dpi_x, dpi_y, driver_copies, driver_collate) = (
+            prepared.hdc,
+            prepared.dpi_x,
+            prepared.dpi_y,
+            prepared.driver_copies,
+            prepared.driver_collate,
+        );
         let offset_x = gdi::GetDeviceCaps(hdc, gdi::PHYSICALOFFSETX as i32);
         let offset_y = gdi::GetDeviceCaps(hdc, gdi::PHYSICALOFFSETY as i32);
 

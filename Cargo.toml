@@ -12,6 +12,13 @@ imaging = "0.0.1"
 serde = { version = "1", features = ["derive"] }
 
 [target.'cfg(windows)'.dependencies]
+windows = { version = "0.62", features = [
+    "Data_Pdf",
+    "Storage_Streams",
+    "Foundation",
+    "Win32_System_Com",
+] }
+image = { version = "0.25", default-features = false, features = ["png"] }
 windows-sys = { version = "0.59", features = [
     "Win32_Foundation",
     "Win32_Security",

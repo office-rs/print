@@ -180,7 +180,7 @@ fn dispatch(
             }
             #[cfg(windows)]
             {
-                crate::backend::gdi::run_gdi_pdf_job(bytes, settings, title, output_file, job)
+                crate::backend::gdi::pdf::run_gdi_pdf_job(bytes, settings, title, output_file, job)
             }
             #[cfg(not(any(windows, target_os = "linux")))]
             {

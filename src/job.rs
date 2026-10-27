@@ -70,6 +70,12 @@ impl SharedJob {
         self.cancelled.load(Ordering::Relaxed)
     }
 
+    /// Worker-side total update (PDF jobs learn the page count after the
+    /// document loads; Pages payloads know it at submit).
+    pub(crate) fn set_pages_total(&self, total: usize) {
+        self.snapshot.lock().unwrap().pages_total = total;
+    }
+
     /// Worker-side update: set state and/or advance page progress.
     pub(crate) fn update(
         &self,
