@@ -12,7 +12,6 @@
 //! (Scene IR) and `serde` — never on rword/rofd crates, so any Scene-IR
 //! host can adopt it.
 
-pub mod dialog;
 pub mod job;
 pub mod page_plan;
 pub mod payload;
@@ -22,9 +21,6 @@ pub mod settings;
 mod backend;
 
 // Type-layer re-exports.
-pub use dialog::{
-    advance, DialogEvent, DialogPhase, DialogState, DiscoverState, Labels, PrintServices,
-};
 pub use job::{join_all, JobHandle, JobSnapshot, JobState};
 pub use page_plan::{
     collate_plan, parse_page_spec, resolve_page_list, validate_page_spec, MAX_SPEC_LEN,
@@ -66,8 +62,6 @@ mod tests {
         // disguise — a removed or renamed item breaks this test).
         let _ = super::PrintSettings::default();
         let _ = super::Paper::A4.pwg_name();
-        let _ = super::DialogState::initial();
-        let _ = super::Labels::en();
         let _: Option<super::PrintPayload> = None;
         let _: Option<super::SceneWire> = None;
         let _ = super::JobSnapshot::fresh(0);
