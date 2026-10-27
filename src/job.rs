@@ -71,7 +71,9 @@ impl SharedJob {
     }
 
     /// Worker-side total update (PDF jobs learn the page count after the
-    /// document loads; Pages payloads know it at submit).
+    /// document loads; Pages payloads know it at submit). Windows-only
+    /// caller (the WinRT pdf sink).
+    #[cfg(windows)]
     pub(crate) fn set_pages_total(&self, total: usize) {
         self.snapshot.lock().unwrap().pages_total = total;
     }
