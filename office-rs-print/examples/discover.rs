@@ -12,10 +12,11 @@
 //!                                    materializes a PDF at <file>)
 //!   cancel                        — submit, then cancel immediately
 
-use imaging::kurbo::{Affine, Rect, Stroke};
+use imaging::kurbo::{Affine, Rect, Stroke, Vec2};
 use imaging::peniko;
-use imaging::record::{Clip, Draw, Geometry, Scene};
+use imaging::record::{Clip, Draw, Geometry, Glyph, GlyphRun, Scene};
 use imaging::Composite;
+use peniko::{FontData, Style};
 use office_rs_print::{PageScene, PrintPayload, PrintSettings};
 use std::sync::Arc;
 
@@ -61,6 +62,32 @@ fn synthetic_page(index: usize) -> PageScene {
         shape: Geometry::Rect(Rect::new(60.0, 820.0, w - 60.0, 1020.0)),
         composite: Composite::default(),
     });
+    // Glyph-size verification line (manual test): real CJK font bytes,
+    // sequential glyph ids — visible boxes/hanzi prove the GDI font
+    // height scaling matches the 64x subpixel coordinate convention.
+    if let Ok(font_bytes) = std::fs::read("C:/Windows/Fonts/simsun.ttc") {
+        let glyphs: Vec<_> = (100u32..112)
+            .enumerate()
+            .map(|(i, id)| Glyph { id, x: (i as f32) * 48.0, y: 0.0 })
+            .collect();
+        scene.draw(Draw::GlyphRun(GlyphRun {
+            font: FontData {
+                data: peniko::Blob::new(Arc::new(font_bytes)),
+                index: 0,
+            },
+            transform: Affine::translate((60.0, 130.0)),
+            glyph_transform: None,
+            brush_transform: None,
+            font_size: 48.0,
+            font_embolden: Vec2::ZERO,
+            hint: false,
+            normalized_coords: vec![],
+            style: Style::Fill(peniko::Fill::NonZero),
+            glyphs,
+            brush: peniko::Brush::Solid(peniko::Color::from_rgba8(0, 0, 0, 255)),
+            composite: Composite::default(),
+        }));
+    }
     if index == 1 {
         scene.push_clip(Clip::Fill {
             transform: Affine::IDENTITY,

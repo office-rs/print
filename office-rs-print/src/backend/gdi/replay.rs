@@ -81,7 +81,12 @@ impl FontRegistry {
             }
             e.insert(handle);
         }
-        let height = lf_height(size_px);
+        // Logical font height lives in the SAME subpixel units as the
+        // emitted coordinates: the composed world transform carries the
+        // 1/64 factor, so an unscaled px height renders the run 64x too
+        // small — glyphs present (extractable) but invisible (the
+        // manual-test blank-PDF bug).
+        let height = lf_height(size_px * SUBPIXEL as f32);
         let face = *self.faces.entry((ptr, height)).or_insert_with(|| {
             let family =
                 family_name(font.data.as_ref(), font.index).unwrap_or_default();
