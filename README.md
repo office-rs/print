@@ -7,23 +7,24 @@ and **Linux CUPS** PDF spooling.
 
 ## Layout
 
-- `office-rs-print/` — the crate.
-  - **Type layer** (compiles on `wasm32-unknown-unknown`): `PrintSettings`
-    with clamping and PWG/DMPAPER paper mappings, page-spec parsing
-    (`"1-3,5"`) and collate planning, the dialog state machine
-    (`DialogState` / `PrintServices` / `Labels`), job handles, and the
-    serde payload (`PrintPayload` + `SceneWire`, a font-deduplicated JSON
-    wire format over `imaging::record::Scene`).
-  - **Backend layer** (native): `list_printers` / `printer_capabilities` /
-    `submit` (+ `submit_to_file` print-to-file channel), the GDI sink
-    (Windows: DEVMODE override, private fonts via `AddFontMemResourceEx`,
-    glyph-index `ExtTextOutW`, 64×-subpixel world transform, per-page
-    cancel + `AbortProc`, driver-unsupported copies/collate emulated by
-    replay order) and the CUPS sink (Linux: `cupsPrintFile` with
-    media/sides/ColorModel/copies/Collate job options).
-- `office-rs-print/examples/discover.rs` — a NON-rword example host
-  (reuse acceptance: `cargo tree -p office-rs-print` shows zero rword
-  dependencies).
+Single crate at the repo root (flat layout; a `crates/` restructure is
+deferred until a second crate actually joins).
+
+- **Type layer** (compiles on `wasm32-unknown-unknown`): `PrintSettings`
+  with clamping and PWG/DMPAPER paper mappings, page-spec parsing
+  (`"1-3,5"`) and collate planning, the dialog state machine
+  (`DialogState` / `PrintServices` / `Labels`), job handles, and the
+  serde payload (`PrintPayload` + `SceneWire`, a font-deduplicated JSON
+  wire format over `imaging::record::Scene`).
+- **Backend layer** (native): `list_printers` / `printer_capabilities` /
+  `submit` (+ `submit_to_file` print-to-file channel), the GDI sink
+  (Windows: DEVMODE override, private fonts via `AddFontMemResourceEx`,
+  glyph-index `ExtTextOutW`, 64×-subpixel world transform, per-page
+  cancel + `AbortProc`, driver-unsupported copies/collate emulated by
+  replay order) and the CUPS sink (Linux: `cupsPrintFile` with
+  media/sides/ColorModel/copies/Collate job options).
+- `examples/discover.rs` — a NON-rword example host (reuse acceptance:
+  `cargo tree -p office-rs-print` shows zero rword dependencies).
 
 ## Job-parameter discipline
 
