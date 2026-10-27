@@ -70,6 +70,18 @@ unsafe extern "system" fn abort_proc(_hdc: gdi::HDC, _code: i32) -> i32 {
     1
 }
 
+/// PDF-payload job (Task 2 wires the WinRT renderer; the stub keeps the
+/// dispatch shape in place).
+pub(crate) fn run_gdi_pdf_job(
+    _pdf: &[u8],
+    _settings: &PrintSettings,
+    _title: &str,
+    _output_file: Option<&Path>,
+    _job: &SharedJob,
+) -> Result<(), String> {
+    Err("gdi pdf sink not implemented yet".to_string())
+}
+
 pub(crate) fn run_gdi_job(
     pages: &[PageScene],
     settings: &PrintSettings,

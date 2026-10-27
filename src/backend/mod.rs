@@ -68,26 +68,46 @@ pub fn printer_capabilities(name: Option<&str>) -> Option<PrinterCaps> {
     }
 }
 
-/// Submit a print job: the payload renders/spools on a worker thread; the
-/// returned handle reports progress and carries cancellation.
-pub fn submit(payload: PrintPayload, settings: &PrintSettings, title: &str) -> JobHandle {
-    submit_with_output(payload, settings, title, None)
+/// Print a Pages (vector Scene-IR) payload: the payload renders/spools on a
+/// worker thread; the returned handle reports progress and carries
+/// cancellation.
+pub fn print_pages(payload: PrintPayload, settings: &PrintSettings, title: &str) -> JobHandle {
+    print_with_output(payload, settings, title, None)
 }
 
-/// Submit routing the job to a file instead of the port: GDI sets
-/// `DOCINFOW.lpszOutput` (e.g. "Microsoft Print to PDF" materializes a
-/// real PDF — the manual-test channel); CUPS writes the spool file and
-/// skips submission. `None` degrades to [`submit`].
-pub fn submit_to_file(
+/// Print a PDF payload: on Linux CUPS spools it natively; on Windows the
+/// system PDF renderer (WinRT `Windows.Data.Pdf`) rasterizes each page at
+/// device DPI through the GDI pipeline — the cross-process host route
+/// (tauri): a PDF is a few MB vs a serialized Scene payload's tens of MB
+/// of embedded font bytes.
+pub fn print_pdf(bytes: &[u8], settings: &PrintSettings, title: &str) -> JobHandle {
+    print_with_output(PrintPayload::Pdf { bytes: bytes.to_vec() }, settings, title, None)
+}
+
+/// Test/diagnostic variant routing the job to a file instead of the port.
+pub fn print_pdf_to_file(
+    bytes: &[u8],
+    settings: &PrintSettings,
+    title: &str,
+    output_file: Option<std::path::PathBuf>,
+) -> JobHandle {
+    print_with_output(PrintPayload::Pdf { bytes: bytes.to_vec() }, settings, title, output_file)
+}
+
+/// Test/diagnostic variant routing the job to a file instead of the port:
+/// GDI sets `DOCINFOW.lpszOutput` (e.g. "Microsoft Print to PDF"
+/// materializes a real PDF — the manual-test channel); CUPS writes the
+/// spool file and skips submission. `None` degrades to [`print_pages`].
+pub fn print_pages_to_file(
     payload: PrintPayload,
     settings: &PrintSettings,
     title: &str,
     output_file: Option<std::path::PathBuf>,
 ) -> JobHandle {
-    submit_with_output(payload, settings, title, output_file)
+    print_with_output(payload, settings, title, output_file)
 }
 
-fn submit_with_output(
+fn print_with_output(
     payload: PrintPayload,
     settings: &PrintSettings,
     title: &str,
@@ -158,10 +178,14 @@ fn dispatch(
             {
                 crate::backend::cups::run_cups_job(bytes, settings, title, output_file, job)
             }
-            #[cfg(not(target_os = "linux"))]
+            #[cfg(windows)]
+            {
+                crate::backend::gdi::run_gdi_pdf_job(bytes, settings, title, output_file, job)
+            }
+            #[cfg(not(any(windows, target_os = "linux")))]
             {
                 let _ = (settings, title, output_file, job);
-                Err("the Pdf payload is only supported on Linux (CUPS)".to_string())
+                Err("PDF printing is supported on Windows and Linux only".to_string())
             }
         }
     }
@@ -173,7 +197,7 @@ mod tests {
 
     #[test]
     fn empty_pages_payload_fails_the_job() {
-        let handle = submit(
+        let handle = print_pages(
             PrintPayload::Pages { pages: vec![] },
             &PrintSettings::default(),
             "t",
@@ -185,7 +209,7 @@ mod tests {
 
     #[test]
     fn empty_pdf_payload_fails_the_job() {
-        let handle = submit(
+        let handle = print_pages(
             PrintPayload::Pdf { bytes: vec![] },
             &PrintSettings::default(),
             "t",
@@ -205,7 +229,7 @@ mod tests {
             height_px: 1123.0,
             scene: Default::default(),
         };
-        let handle = submit(
+        let handle = print_pages(
             PrintPayload::Pages { pages: vec![page] },
             &PrintSettings::default(),
             "t",

@@ -39,7 +39,8 @@ pub use settings::{
 // Backend-layer re-exports (native only).
 #[cfg(not(target_arch = "wasm32"))]
 pub use backend::{
-    list_printers, printer_capabilities, submit, submit_to_file, PrinterCaps, PrinterInfo,
+    list_printers, printer_capabilities, print_pages, print_pages_to_file, print_pdf,
+    print_pdf_to_file, PrinterCaps, PrinterInfo,
 };
 
 /// Crate version (host diagnostics).

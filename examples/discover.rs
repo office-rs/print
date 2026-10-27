@@ -6,6 +6,7 @@
 //! Usage:
 //!   discover                      — list printers (+ capabilities)
 //!   print [name]                  — print 2 synthetic pages to `name`
+//!   printpdf <file.pdf> [printer] — print an existing PDF via print_pdf
 //!                                    (or the default printer)
 //!   print [name] --out <file>     — print-to-file channel (e.g. with
 //!                                    "Microsoft Print to PDF" this
@@ -145,7 +146,7 @@ fn main() {
             let payload = PrintPayload::Pages {
                 pages: vec![synthetic_page(0), synthetic_page(1)],
             };
-            let handle = office_rs_print::submit_to_file(
+            let handle = office_rs_print::print_pages_to_file(
                 payload,
                 &settings,
                 "office-rs-print example",
@@ -161,11 +162,50 @@ fn main() {
                 std::process::exit(2);
             }
         }
+        Some("printpdf") => {
+            // Manual-test vehicle for print_pdf: any PDF file straight to a
+            // printer (default when omitted). `--out` = print-to-file.
+            let file = args.get(1).cloned();
+            let printer = args.get(2).filter(|a| !a.starts_with("--")).cloned();
+            let out = args
+                .iter()
+                .position(|a| a == "--out")
+                .and_then(|i| args.get(i + 1))
+                .cloned();
+            let Some(file) = file else {
+                eprintln!("usage: printpdf <file.pdf> [printer] [--out <file>]");
+                std::process::exit(2);
+            };
+            let bytes = std::fs::read(&file).unwrap_or_else(|e| {
+                eprintln!("read {file}: {e}");
+                std::process::exit(2);
+            });
+            let settings = PrintSettings {
+                printer,
+                copies: 1,
+                ..PrintSettings::default()
+            };
+            let handle = office_rs_print::print_pdf_to_file(
+                &bytes,
+                &settings,
+                "office-rs-print pdf",
+                out.map(std::path::PathBuf::from),
+            );
+            let snap = handle.wait();
+            println!(
+                "pdf job: {:?} pages={}/{} error={:?}",
+                snap.state, snap.pages_done, snap.pages_total, snap.error
+            );
+            office_rs_print::join_all();
+            if snap.state != office_rs_print::JobState::Done {
+                std::process::exit(2);
+            }
+        }
         Some("cancel") => {
             let payload = PrintPayload::Pages {
                 pages: vec![synthetic_page(0), synthetic_page(1)],
             };
-            let handle = office_rs_print::submit(payload, &PrintSettings::default(), "cancel-probe");
+            let handle = office_rs_print::print_pages(payload, &PrintSettings::default(), "cancel-probe");
             handle.cancel();
             let snap = handle.wait();
             println!("cancel probe: {:?}", snap.state);
