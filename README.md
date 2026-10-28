@@ -17,12 +17,15 @@ deferred until a second crate actually joins).
   serde payload (`PrintPayload` + `SceneWire`, a font-deduplicated JSON
   wire format over `imaging::record::Scene`).
 - **Backend layer** (native): `list_printers` / `printer_capabilities` /
-  `submit` (+ `submit_to_file` print-to-file channel), the GDI sink
-  (Windows: DEVMODE override, private fonts via `AddFontMemResourceEx`,
-  glyph-index `ExtTextOutW`, 64×-subpixel world transform, per-page
-  cancel + `AbortProc`, driver-unsupported copies/collate emulated by
-  replay order) and the CUPS sink (Linux: `cupsPrintFile` with
-  media/sides/ColorModel/copies/Collate job options).
+  `print_pages` (vector Scene payload) and **`print_pdf`** (PDF payload:
+  Windows rasterizes through the system renderer — WinRT
+  `Windows.Data.Pdf` at device DPI — inside the same GDI spool pipeline;
+  Linux spools via `cupsPrintFile`). The GDI sink (DEVMODE override,
+  private fonts via `AddFontMemResourceEx`, glyph-index `ExtTextOutW`,
+  64×-subpixel world transform, per-page cancel + `AbortProc`,
+  driver-unsupported copies/collate emulated by replay order) and the
+  CUPS sink (media/sides/ColorModel/copies/Collate job options) sit
+  under both.
 - `examples/discover.rs` — a NON-rword example host (reuse acceptance:
   `cargo tree -p office-rs-print` shows zero rword dependencies).
 
@@ -39,12 +42,15 @@ pages.
 ```
 cargo run --example discover                  # list printers + capabilities
 cargo run --example discover -- print "Microsoft Print to PDF" --out out.pdf
+cargo run --example discover -- printpdf in.pdf [printer] [--out f.pdf]
 cargo run --example discover -- cancel        # submit + immediate cancel probe
 ```
 
-The `print` verb drives the full Windows pipeline with two synthetic
-pages (fills, stroke, clip); with `--out` the "Microsoft Print to PDF"
-driver materializes a PDF for inspection.
+The `print` verb drives the full Windows vector pipeline with two
+synthetic pages (fills, stroke, clip, a glyph line); `printpdf` runs the
+PDF route (WinRT render + GDI raster spool) on any existing PDF — with
+`--out` the "Microsoft Print to PDF" driver materializes the result for
+inspection.
 
 ## Status
 
