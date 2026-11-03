@@ -147,6 +147,14 @@ pub struct PrintSettings {
     pub orientation: Orientation,
     pub range: PageRange,
     pub parity: Parity,
+    /// Whether the printed pages carry tracked-change marks (rword trace
+    /// spec 2026-10-31 §6.8). `None`/`false` = the CLEAN effective view
+    /// (deleted text absent, no author colors/lines); `Some(true)` prints
+    /// the marked view. A document-rendering input, not a spooler knob —
+    /// the backends ignore it; the rword component reads it to pick the
+    /// print layout. `None` keeps serialized settings from older hosts
+    /// deserializable and means the same as `false`.
+    pub show_changes: Option<bool>,
 }
 
 impl Default for PrintSettings {
@@ -161,6 +169,7 @@ impl Default for PrintSettings {
             orientation: Orientation::Portrait,
             range: PageRange::All,
             parity: Parity::All,
+            show_changes: None,
         }
     }
 }
@@ -319,6 +328,7 @@ mod tests {
             orientation: Orientation::Landscape,
             range: PageRange::Custom { spec: "1-3,5".into() },
             parity: Parity::Odd,
+            show_changes: Some(true),
         }
         .normalized();
         let json = serde_json::to_string(&s).unwrap();
@@ -326,5 +336,21 @@ mod tests {
         assert_eq!(back, s);
         // Tagged enum shape (tauri IPC friendliness).
         assert!(json.contains(r#""kind":"Custom""#), "{json}");
+    }
+
+    /// `show_changes` defaults to `None` (the clean effective view, trace
+    /// spec 2026-10-31 §6.8) and deserializes as `None` when absent, so
+    /// pre-field JSON (older hosts, persisted dialogs) keeps working.
+    #[test]
+    fn show_changes_defaults_none_and_back_compatible() {
+        assert_eq!(PrintSettings::default().show_changes, None);
+        let legacy = r#"{
+            "printer": null, "copies": 1, "collate": true,
+            "duplex": "Off", "color": "Color", "paper": "A4",
+            "orientation": "Portrait",
+            "range": {"kind": "All"}, "parity": "All"
+        }"#;
+        let s: PrintSettings = serde_json::from_str(legacy).unwrap();
+        assert_eq!(s.show_changes, None, "absent field must read as None");
     }
 }
