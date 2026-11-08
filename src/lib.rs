@@ -17,7 +17,7 @@ pub mod page_plan;
 pub mod payload;
 pub mod settings;
 
-#[cfg(not(target_arch = "wasm32"))]
+#[cfg(all(feature = "backend", not(target_arch = "wasm32")))]
 mod backend;
 
 // Type-layer re-exports.
@@ -32,8 +32,10 @@ pub use settings::{
     SettingsError,
 };
 
-// Backend-layer re-exports (native only).
-#[cfg(not(target_arch = "wasm32"))]
+// Backend-layer re-exports (native only, behind the `backend` feature —
+// headless consumers build the type layer alone and link no spooler
+// libraries, e.g. libcups).
+#[cfg(all(feature = "backend", not(target_arch = "wasm32")))]
 pub use backend::{
     list_printers, printer_capabilities, print_pages, print_pages_to_file, print_pdf,
     print_pdf_to_file, PrinterCaps, PrinterInfo,

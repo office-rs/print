@@ -7,6 +7,16 @@ repository = "https://github.com/office-rs/print"
 description = "Print spooling for office-rs editors: settings/dialog state machine, Windows GDI vector sink, Linux CUPS sink — Scene-IR driven"
 readme = "README.md"
 
+[features]
+default = ["backend"]
+# Native print backends (printer discovery + platform sinks: Windows GDI,
+# Linux CUPS). Headless consumers that only need the type layer (page
+# planning, settings, payload, job types) turn this OFF — the Linux CUPS
+# backend is a link-time libcups dependency that headless conversion
+# packages (wheels/.node/.so) must not carry (rofd convert spec §9:
+# published binaries link no spooler libraries).
+backend = []
+
 [dependencies]
 imaging = "0.0.1"
 serde = { version = "1", features = ["derive"] }
